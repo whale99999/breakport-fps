@@ -66,10 +66,37 @@ export function createBots(scene, world) {
     torso.position.y = 1.16;
     const head = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.3), headMat);
     head.position.y = 1.7;
-    const gun = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.12, 0.55), mat(0x2c2f33, 0.5, 0.5));
-    gun.position.set(0.22, 1.28, -0.35);
+    // Kit worn over the hit meshes (visual only — hitMeshes stay exactly the
+    // legs/torso/head boxes): a darker vest, a helmet cap that sits inside
+    // the head box, a visor strip, a team shoulder patch and boots.
+    const vest = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.52, 0.42),
+      mat(team === TEAM.ATK ? 0x8a3c14 : 0x0e4a44, 0.95));
+    vest.position.y = 1.2; vest.castShadow = true;
+    const helmet = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.14, 0.3),
+      mat(team === TEAM.ATK ? PAL.rustDark : PAL.tealDark, 0.85));
+    helmet.position.y = 1.78; helmet.castShadow = true;
+    const visor = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.06, 0.02), mat(PAL.slate, 0.4, 0.3));
+    visor.position.set(0, 1.68, -0.16);
+    const patch = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.13, 0.15), teamMat);
+    patch.position.set(-0.35, 1.4, 0);
+    const bootMat = mat(0x24262a, 0.95);
+    const bootL = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.12, 0.36), bootMat);
+    bootL.position.set(-0.13, 0.06, -0.02);
+    const bootR = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.12, 0.36), bootMat);
+    bootR.position.set(0.13, 0.06, -0.02);
+    // The held gun gets the same part treatment as the view models, simplified:
+    // receiver, barrel and magazine in one small group.
+    const gunMat = mat(0x2c2f33, 0.5, 0.5);
+    const gun = new THREE.Group();
+    const gBody = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.13, 0.4), gunMat);
+    const gBarrel = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.035, 0.24), gunMat);
+    gBarrel.position.set(0, 0.02, -0.3);
+    const gMag = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.14, 0.06), gunMat);
+    gMag.position.set(0, -0.11, -0.05);
+    gun.add(gBody, gBarrel, gMag);
+    gun.position.set(0.22, 1.28, -0.28);
     for (const m of [legs, torso, head]) { m.castShadow = true; group.add(m); }
-    group.add(gun);
+    group.add(vest, helmet, visor, patch, bootL, bootR, gun);
     scene.add(group);
     const bot = {
       name, team, idx: i, alive: true, hp: 100, armor: false,

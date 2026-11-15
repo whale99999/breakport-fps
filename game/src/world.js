@@ -5,6 +5,7 @@
 // connector (south), and Mid->B through the centre.
 import * as THREE from 'three';
 import { PAL, mat, box, textTexture } from './palette.js';
+import { containerMats, concreteMat, crateMat, warehouseMat, hazardMat, barrelMat, sunGlowTexture } from './textures.js';
 
 export const BOUNDS = { x: 58, z: 40 };
 
@@ -27,7 +28,24 @@ export function createWorld(scene) {
     new THREE.MeshBasicMaterial({ map: skyTex, side: THREE.BackSide, fog: false }),
   );
   scene.add(sky);
-  scene.fog = new THREE.Fog(PAL.fog, 55, 190);
+  // A low sun with a soft glow in the light's own direction, so the golden
+  // hour has a visible source hanging over the dome.
+  const sunDir = new THREE.Vector3(-55, 34, -26).normalize();
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: sunGlowTexture(), color: 0xffcf96, transparent: true,
+    blending: THREE.AdditiveBlending, depthWrite: false, fog: false,
+  }));
+  glow.position.copy(sunDir).multiplyScalar(385);
+  glow.scale.setScalar(215);
+  scene.add(glow);
+  const sunCore = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: sunGlowTexture(), color: 0xfff3cf, transparent: true,
+    blending: THREE.AdditiveBlending, depthWrite: false, fog: false,
+  }));
+  sunCore.position.copy(sunDir).multiplyScalar(390);
+  sunCore.scale.setScalar(62);
+  scene.add(sunCore);
+  scene.fog = new THREE.Fog(PAL.fog, 48, 175);
 
   const sun = new THREE.DirectionalLight(PAL.sun, 3.1);
   sun.position.set(-55, 34, -26);
@@ -43,7 +61,7 @@ export function createWorld(scene) {
   // --- ground --------------------------------------------------------------
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(150, 110),
-    mat(PAL.asphalt, 1),
+    concreteMat(),
   );
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
@@ -59,27 +77,45 @@ export function createWorld(scene) {
     if (y === 0) colliders.push({ x0: cx - w / 2, z0: cz - d / 2, x1: cx + w / 2, z1: cz + d / 2 });
     return m;
   }
-  // A shipping container: body plus a stencilled end panel; sometimes stacked.
+  // A shipping container: corrugated, rust-streaked sides stencilled with its
+  // own fleet number (textures.js); sometimes stacked two high.
+  let containerNo = 0;
   function container(cx, cz, vertical, color, stack = 1) {
     const w = vertical ? 2.44 : 6.06, d = vertical ? 6.06 : 2.44;
-    for (let i = 0; i < stack; i++) solid(cx, cz, w, d, 2.6, mat(color, 0.75, 0.15), i * 2.6);
+    for (let i = 0; i < stack; i++) {
+      containerNo += 1;
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, 2.6, d),
+        containerMats(color, 'BPLU ' + (204100 + containerNo * 137)));
+      m.position.set(cx, i * 2.6 + 1.3, cz);
+      m.castShadow = true; m.receiveShadow = true;
+      scene.add(m); hitMeshes.push(m);
+    }
+    colliders.push({ x0: cx - w / 2, z0: cz - d / 2, x1: cx + w / 2, z1: cz + d / 2 });
   }
   function crates(cx, cz, n = 3) {
     for (let i = 0; i < n; i++) {
       const s = 1.1 + (i % 2) * 0.25;
-      solid(cx + (i % 2) * 1.3 - 0.6, cz + Math.floor(i / 2) * 1.3 - 0.4, s, s, s, mat(PAL.sand, 0.95), 0);
+      solid(cx + (i % 2) * 1.3 - 0.6, cz + Math.floor(i / 2) * 1.3 - 0.4, s, s, s, crateMat(), 0);
     }
     // stacked second layer on the first crate
-    const top = box(1.0, 1.0, 1.0, mat(PAL.sandDark, 0.95));
+    const top = box(1.0, 1.0, 1.0, crateMat());
     top.position.set(cx - 0.6, 1.6, cz - 0.4); scene.add(top); hitMeshes.push(top);
   }
   function barrels(cx, cz) {
     for (let i = 0; i < 3; i++) {
-      const b = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 1.05, 10), mat(i ? PAL.tealDark : PAL.rustDark, 0.6, 0.3));
+      const b = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 1.05, 10), barrelMat(i ? PAL.tealDark : PAL.rustDark));
       b.position.set(cx + (i % 2) * 0.95, 0.53, cz + Math.floor(i / 2) * 0.95);
       b.castShadow = true; scene.add(b); hitMeshes.push(b);
     }
     colliders.push({ x0: cx - 0.5, z0: cz - 0.5, x1: cx + 1.5, z1: cz + 1.5 });
+  }
+  // A pallet with a crated load strapped on top: set dressing at lane edges.
+  function pallets(cx, cz) {
+    const base = box(1.3, 0.13, 1.3, crateMat());
+    base.position.set(cx, 0.07, cz); scene.add(base); hitMeshes.push(base);
+    const goods = box(0.98, 0.85, 0.98, crateMat());
+    goods.position.set(cx, 0.57, cz); scene.add(goods); hitMeshes.push(goods);
+    colliders.push({ x0: cx - 0.65, z0: cz - 0.65, x1: cx + 0.65, z1: cz + 0.65 });
   }
 
   // --- perimeter ------------------------------------------------------------
@@ -102,6 +138,7 @@ export function createWorld(scene) {
   container(-12, 7.5, false, PAL.slateLight, 1);
   container(0, 7.5, true, PAL.rustDark, 1);
   crates(-18, 0); crates(6, -1); barrels(-28, -2); barrels(12, 3);
+  pallets(-20.5, 2.8); pallets(-42, 21);
 
   // --- north lane to A ---------------------------------------------------------
   container(-2, -21, false, PAL.teal, 1);
@@ -122,6 +159,14 @@ export function createWorld(scene) {
   const cable = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 5.5, 6), mat(PAL.slate, 0.5, 0.5));
   cable.position.set(38, 10.2, -24); scene.add(cable);
   const hook = box(1.4, 1.1, 1.4, mat(PAL.rustDark, 0.6, 0.3)); hook.position.set(38, 7.2, -24); scene.add(hook); hitMeshes.push(hook);
+  // a second hoist further along the jib, plus the spreader bar and hook tip
+  // hanging from the first block
+  const cable2 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 5.5, 6), mat(PAL.slate, 0.5, 0.5));
+  cable2.position.set(38, 10.2, -30); scene.add(cable2);
+  const block2 = box(1.2, 0.9, 1.2, mat(PAL.rustDark, 0.6, 0.3)); block2.position.set(38, 7.2, -30); scene.add(block2); hitMeshes.push(block2);
+  const spreader = box(2.6, 0.16, 0.7, mat(PAL.rust, 0.6, 0.3)); spreader.position.set(38, 6.45, -24); scene.add(spreader);
+  const hookTip = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.5, 8), mat(PAL.slate, 0.5, 0.5));
+  hookTip.rotation.x = Math.PI; hookTip.position.set(38, 6.05, -24); scene.add(hookTip);
 
   // --- south lane & site B: the depot -------------------------------------------
   container(-36, 27, false, PAL.slate, 1);
@@ -129,17 +174,41 @@ export function createWorld(scene) {
   container(-8, 27, false, PAL.teal, 1);
   crates(4, 33); barrels(-16, 22);
   // Warehouse walls around B with two door gaps (north and east).
-  const wall = mat(PAL.sandDark, 0.9);
+  const wall = warehouseMat('B');
   solid(29.5, 12.5, 13, 1, 4.2, wall); solid(45.5, 12.5, 11, 1, 4.2, wall);
   solid(52, 19, 1, 12, 4.2, wall); solid(52, 30.5, 1, 9, 4.2, wall);
   solid(38, 34.5, 29, 1, 4.2, wall); solid(24.5, 23, 1, 24, 4.2, wall);
   const roof = box(29, 0.3, 24, mat(PAL.slate, 0.8, 0.2)); roof.position.set(38, 5.4, 23); scene.add(roof); hitMeshes.push(roof);
+  // Lit windows glowing on the warehouse's outer faces.
+  const winMat = new THREE.MeshStandardMaterial({ color: 0x241708, emissive: 0xffb45e, emissiveIntensity: 1.5, roughness: 0.4 });
+  for (const wx of [26.5, 30.5, 44, 48]) {
+    const win = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.9), winMat);
+    win.position.set(wx, 2.9, 11.96); win.rotation.y = Math.PI; scene.add(win);
+  }
+  for (const wz of [17, 21.5]) {
+    const win = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.9), winMat);
+    win.position.set(52.56, 2.9, wz); win.rotation.y = Math.PI / 2; scene.add(win);
+  }
   container(40, 27, false, PAL.teal, 1);
-  crates(31, 20); barrels(46, 31);
+  crates(31, 20); barrels(46, 31); pallets(33, 30.5);
 
   // --- east edge & lamps ----------------------------------------------------------
   container(56, -6, true, PAL.slateLight, 2);
   container(56, 8, true, PAL.rust, 1);
+  // Distant silhouettes beyond the fence — stacked boxes and a second gantry
+  // crane as flat shapes for the fog to swallow. No colliders, not shootable.
+  const silMat = mat(0x39424f, 1);
+  function silhouette(x, z, w, h, d, y) {
+    const m = box(w, h, d, silMat);
+    m.position.set(x, y, z); m.castShadow = false; m.receiveShadow = false;
+    scene.add(m);
+  }
+  silhouette(68, -28, 13, 2.6, 2.6, 1.3); silhouette(68, -28, 13, 2.6, 2.6, 3.9);
+  silhouette(68, 24, 11, 2.6, 2.6, 1.3);
+  silhouette(-68, 30, 12, 2.6, 2.6, 1.3); silhouette(-68, -33, 12, 2.6, 2.6, 1.3);
+  silhouette(8, 50, 15, 2.6, 2.6, 1.3);
+  silhouette(66, -6, 1.2, 17, 1.2, 8.5); silhouette(66, 10, 1.2, 17, 1.2, 8.5);
+  silhouette(66, 2, 1.6, 1.3, 20, 17.4);
   const lampMat = new THREE.MeshStandardMaterial({ color: 0x554433, emissive: 0xffa640, emissiveIntensity: 1.6 });
   for (const [lx, lz] of [[-40, -3], [-4, 4], [18, -18], [18, 18], [-30, 21], [50, -22]]) {
     const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.12, 5.4, 6), mat(PAL.slate, 0.6, 0.4));
@@ -147,6 +216,12 @@ export function createWorld(scene) {
     const head = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.18, 0.3), lampMat);
     head.position.set(lx, 5.45, lz); scene.add(head);
     colliders.push({ x0: lx - 0.16, z0: lz - 0.16, x1: lx + 0.16, z1: lz + 0.16 });
+  }
+  // Two real point lights at the site lamps: warm pools on the ground where
+  // the fighting happens. No shadows on these — the sun does that work.
+  for (const [lx, lz] of [[18, -18], [18, 18]]) {
+    const pl = new THREE.PointLight(0xffa640, 55, 24, 1.8);
+    pl.position.set(lx, 5.1, lz); scene.add(pl);
   }
 
   // --- sites: painted rings + letters ----------------------------------------------
@@ -167,6 +242,12 @@ export function createWorld(scene) {
     );
     letter.rotation.x = -Math.PI / 2; letter.position.set(st.x, 0.04, st.z); scene.add(letter);
   }
+
+  // Hazard stripes painted across the site thresholds.
+  const hz1 = new THREE.Mesh(new THREE.PlaneGeometry(9, 0.9), hazardMat());
+  hz1.rotation.x = -Math.PI / 2; hz1.position.set(38, 0.025, -12.7); scene.add(hz1);
+  const hz2 = new THREE.Mesh(new THREE.PlaneGeometry(4.4, 0.9), hazardMat());
+  hz2.rotation.x = -Math.PI / 2; hz2.position.set(38, 0.025, 12.55); scene.add(hz2);
 
   // Lane paint: worn guide lines on the asphalt.
   const paint = mat(PAL.cream, 1);

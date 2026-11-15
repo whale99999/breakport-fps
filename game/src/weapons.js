@@ -58,11 +58,59 @@ export function createWeapons(camera, scene, input, player) {
   }
   const dark = mat(0x2c2f33, 0.5, 0.5), mid = mat(0x4a4f55, 0.45, 0.55), accent = mat(0xc65a21, 0.5, 0.3);
   function part(g, w, h, d, m, x, y, z) { const p = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); p.position.set(x, y, z); g.add(p); return p; }
-  vm('knife', (g) => { part(g, 0.03, 0.09, 0.16, dark, 0, 0, -0.05); part(g, 0.012, 0.05, 0.3, mid, 0, 0.03, -0.3); });
-  vm('sable', (g) => { part(g, 0.05, 0.11, 0.24, dark, 0, 0, -0.08); part(g, 0.045, 0.05, 0.1, mid, 0, 0.07, -0.14); });
-  vm('vyper', (g) => { part(g, 0.055, 0.12, 0.4, dark, 0, 0, -0.12); part(g, 0.04, 0.16, 0.07, mid, 0, -0.12, -0.1); part(g, 0.03, 0.03, 0.16, mid, 0, 0.02, -0.38); });
-  vm('kestrel', (g) => { part(g, 0.055, 0.11, 0.52, dark, 0, 0, -0.16); part(g, 0.04, 0.14, 0.07, mid, 0, -0.11, -0.14); part(g, 0.05, 0.06, 0.12, accent, 0, 0.08, -0.2); part(g, 0.028, 0.028, 0.2, mid, 0, 0.01, -0.5); });
-  vm('heron', (g) => { part(g, 0.05, 0.1, 0.62, dark, 0, 0, -0.2); part(g, 0.045, 0.09, 0.3, mid, 0, 0.09, -0.18); part(g, 0.02, 0.02, 0.34, mid, 0, 0.01, -0.62); });
+  function tube(g, r, len, m, x, y, z) { const p = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 10), m); p.rotation.x = Math.PI / 2; p.position.set(x, y, z); g.add(p); return p; }
+  // Each view model is assembled from real parts — receiver, barrel, magazine,
+  // stock, sights, rail — so the gun in hand reads as a gun, not a slab.
+  vm('knife', (g) => {
+    part(g, 0.032, 0.095, 0.17, dark, 0, 0, -0.04);                    // grip
+    part(g, 0.075, 0.018, 0.03, accent, 0, 0.012, -0.135);            // crossguard
+    part(g, 0.014, 0.055, 0.3, mid, 0, 0.028, -0.3);                  // blade
+  });
+  vm('sable', (g) => {
+    part(g, 0.05, 0.09, 0.26, dark, 0, -0.012, -0.1);                 // frame
+    part(g, 0.046, 0.05, 0.27, mid, 0, 0.056, -0.11);                 // slide
+    const grip = part(g, 0.045, 0.13, 0.07, dark, 0, -0.1, 0.005); grip.rotation.x = 0.22;
+    part(g, 0.008, 0.032, 0.008, dark, 0, 0.096, -0.225);             // front post
+    part(g, 0.032, 0.026, 0.012, dark, 0, 0.092, 0.005);              // rear sight
+    part(g, 0.03, 0.03, 0.035, mid, 0, 0.01, -0.245);                 // muzzle
+  });
+  vm('vyper', (g) => {
+    part(g, 0.055, 0.115, 0.42, dark, 0, 0, -0.13);                   // receiver
+    part(g, 0.05, 0.08, 0.2, mid, 0, 0.004, -0.42);                   // shroud
+    tube(g, 0.016, 0.13, mid, 0, 0.012, -0.57);                       // barrel
+    const mag = part(g, 0.04, 0.17, 0.075, mid, 0, -0.135, -0.12); mag.rotation.x = 0.16;
+    part(g, 0.045, 0.08, 0.16, dark, 0, 0.008, 0.13);                 // stock
+    part(g, 0.02, 0.02, 0.3, mid, 0, 0.072, -0.15);                   // top rail
+    part(g, 0.008, 0.04, 0.008, dark, 0, 0.075, -0.48);               // front post
+    part(g, 0.058, 0.03, 0.12, accent, 0, -0.02, -0.22);              // accent stripe
+  });
+  vm('kestrel', (g) => {
+    part(g, 0.055, 0.11, 0.5, dark, 0, 0, -0.16);                     // receiver
+    part(g, 0.052, 0.085, 0.26, mid, 0, 0, -0.44);                    // handguard
+    tube(g, 0.015, 0.17, dark, 0, 0.006, -0.64);                      // barrel
+    tube(g, 0.024, 0.06, mid, 0, 0.006, -0.72);                       // muzzle brake
+    const mag = part(g, 0.042, 0.15, 0.08, mid, 0, -0.125, -0.16); mag.rotation.x = 0.12;
+    const grip = part(g, 0.04, 0.11, 0.06, dark, 0, -0.1, 0.03); grip.rotation.x = 0.3;
+    part(g, 0.05, 0.09, 0.18, dark, 0, 0, 0.15);                      // stock
+    part(g, 0.05, 0.058, 0.13, accent, 0, 0.086, -0.18);              // carry handle
+    part(g, 0.008, 0.046, 0.008, dark, 0, 0.062, -0.52);              // front post
+  });
+  vm('heron', (g) => {
+    part(g, 0.052, 0.105, 0.6, dark, 0, 0, -0.2);                     // receiver
+    tube(g, 0.02, 0.34, mid, 0, 0.01, -0.64);                         // heavy barrel
+    tube(g, 0.03, 0.07, dark, 0, 0.01, -0.82);                        // muzzle brake
+    tube(g, 0.026, 0.3, dark, 0, 0.108, -0.2);                        // scope tube
+    tube(g, 0.037, 0.07, dark, 0, 0.108, -0.335);                     // objective bell
+    tube(g, 0.032, 0.05, dark, 0, 0.108, -0.055);                     // eyepiece
+    part(g, 0.02, 0.05, 0.03, mid, 0, 0.062, -0.28);                  // scope mounts
+    part(g, 0.02, 0.05, 0.03, mid, 0, 0.062, -0.12);
+    part(g, 0.05, 0.1, 0.3, mid, 0, -0.012, 0.17);                    // stock
+    part(g, 0.052, 0.05, 0.16, dark, 0, 0.052, 0.19);                 // cheek rest
+    part(g, 0.04, 0.09, 0.07, mid, 0, -0.095, -0.18);                 // magazine
+    part(g, 0.05, 0.02, 0.02, mid, 0.045, 0.032, -0.02);              // bolt handle
+    const bl = part(g, 0.012, 0.17, 0.012, dark, -0.055, -0.09, -0.52); bl.rotation.z = 0.35; bl.rotation.x = 0.4;
+    const br = part(g, 0.012, 0.17, 0.012, dark, 0.055, -0.09, -0.52); br.rotation.z = -0.35; br.rotation.x = 0.4;
+  });
   const grenadeModel = new THREE.Group();
   const gball = new THREE.Mesh(new THREE.SphereGeometry(0.055, 10, 8), mat(0x3d4756, 0.5, 0.4));
   grenadeModel.add(gball); grenadeModel.position.set(0.24, -0.2, -0.4); grenadeModel.visible = false;
@@ -91,6 +139,51 @@ export function createWeapons(camera, scene, input, player) {
     t.until = S.time + 0.055;
   }
 
+  // --- muzzle light + impact sparks: one pooled light, one pooled Points ---
+  const flashLight = new THREE.PointLight(0xffb35c, 0, 10, 1.7);
+  scene.add(flashLight);
+  let flashLightUntil = -9;
+  const SPARKS = 240;
+  const sparkPos = new Float32Array(SPARKS * 3);
+  const sparkVel = new Float32Array(SPARKS * 3);
+  const sparkLife = new Float32Array(SPARKS);
+  for (let i = 0; i < SPARKS; i++) sparkPos[i * 3 + 1] = -999;
+  const sparkGeo = new THREE.BufferGeometry();
+  sparkGeo.setAttribute('position', new THREE.BufferAttribute(sparkPos, 3));
+  const sparkPts = new THREE.Points(sparkGeo, new THREE.PointsMaterial({
+    color: 0xffc37a, size: 0.085, transparent: true, opacity: 0.95,
+    blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true,
+  }));
+  sparkPts.frustumCulled = false;
+  scene.add(sparkPts);
+  let sparkAt = 0;
+  function spawnSparks(x, y, z, n, spread = 2.6, up = 2.2) {
+    for (let k = 0; k < n; k++) {
+      const i = sparkAt++ % SPARKS, j = i * 3;
+      sparkPos[j] = x; sparkPos[j + 1] = y; sparkPos[j + 2] = z;
+      sparkVel[j] = (Math.random() * 2 - 1) * spread;
+      sparkVel[j + 1] = Math.random() * up;
+      sparkVel[j + 2] = (Math.random() * 2 - 1) * spread;
+      sparkLife[i] = 0.22 + Math.random() * 0.25;
+    }
+  }
+  function tickSparks(dt) {
+    let any = false;
+    for (let i = 0; i < SPARKS; i++) {
+      if (sparkLife[i] <= 0) continue;
+      any = true;
+      sparkLife[i] -= dt;
+      const j = i * 3;
+      if (sparkLife[i] <= 0) { sparkPos[j + 1] = -999; continue; }
+      sparkVel[j + 1] -= 12 * dt;
+      sparkPos[j] += sparkVel[j] * dt;
+      sparkPos[j + 1] += sparkVel[j + 1] * dt;
+      sparkPos[j + 2] += sparkVel[j + 2] * dt;
+      if (sparkPos[j + 1] < 0.02) { sparkPos[j + 1] = 0.02; sparkVel[j + 1] *= -0.4; }
+    }
+    if (any) sparkGeo.attributes.position.needsUpdate = true;
+  }
+
   // --- grenades ----------------------------------------------------------------
   const grenades = [];
   const gGeo = new THREE.SphereGeometry(0.07, 10, 8);
@@ -105,6 +198,7 @@ export function createWeapons(camera, scene, input, player) {
   // Area damage with a cover check; also the Charge's detonation path.
   function explodeAt(x, y, z, radius, maxDmg, owner) {
     sfxExplosion(player.pos ? Math.hypot(player.pos.x - x, player.pos.z - z) : 0);
+    spawnSparks(x, y + 0.3, z, 26, 4.5, 3.5);
     S.shake = Math.min(0.6, S.shake + Math.max(0, 1 - Math.hypot(player.pos.x - x, player.pos.z - z) / 16) * 0.5);
     const flashLight = new THREE.PointLight(0xffa050, 60, radius * 3, 1.6);
     flashLight.position.set(x, y + 0.5, z);
@@ -165,6 +259,10 @@ export function createWeapons(camera, scene, input, player) {
     S.noise = { x: player.pos.x, z: player.pos.z, t: S.time, team: player.team };
     camera.getWorldPosition(_origin);
     camera.getWorldDirection(_dir);
+    // the pooled muzzle light rides this shot for a few dozen milliseconds
+    flashLight.position.set(_origin.x + _dir.x * 0.8, _origin.y - 0.04, _origin.z + _dir.z * 0.8);
+    flashLight.intensity = 30;
+    flashLightUntil = S.time + 0.05;
     _right.crossVectors(_dir, camera.up).normalize();
     _up.crossVectors(_right, _dir).normalize();
     const sp = currentSpread(w) * Math.PI / 180;
@@ -180,6 +278,7 @@ export function createWeapons(camera, scene, input, player) {
       const h = hits[0];
       _target.copy(h.point);
       const ud = h.object.userData;
+      spawnSparks(h.point.x, h.point.y, h.point.z, ud && ud.bot ? 7 : 11);
       if (ud && ud.bot && ud.bot.alive) {
         const dmg = w.dmg * ZONE_MULT[ud.zone] * falloff(w, h.distance);
         S.refs.damageBot(ud.bot, dmg, ud.zone, 'player');
@@ -237,6 +336,8 @@ export function createWeapons(camera, scene, input, player) {
     bloom = Math.max(0, bloom - dt * 2.2);
     if (reloadT > 0) { reloadT -= dt; if (reloadT <= 0) completeReload(); }
     flash.material.opacity = Math.max(0, flash.material.opacity - dt * 16);
+    if (flashLight.intensity > 0 && S.time > flashLightUntil) flashLight.intensity = 0;
+    tickSparks(dt);
     for (const t of tracers) if (t.line.visible && S.time > t.until) t.line.visible = false;
 
     // grenade physics: gravity, ground bounce, AABB bounce, fuse
@@ -309,8 +410,24 @@ export function createWeapons(camera, scene, input, player) {
     prevFiring = input.firing;
   }
 
+  // Freeze-frame effects for ?shot=play: muzzle flash lit, a tracer on its way
+  // to the target, sparks already bursting off it — set after the last sim
+  // step, so nothing decays before the capture renders.
+  function poseShotFx(tx, ty, tz) {
+    camera.getWorldPosition(_origin);
+    camera.getWorldDirection(_dir);
+    flash.material.opacity = 1;
+    flash.rotation.z = 0.6;
+    flashLight.position.set(_origin.x + _dir.x * 0.8, _origin.y - 0.04, _origin.z + _dir.z * 0.8);
+    flashLight.intensity = 34;
+    _target.set(tx, ty, tz);
+    _origin.y -= 0.12; _origin.addScaledVector(_dir, 0.4);
+    tracer(_origin, _target);
+    spawnSparks(tx, ty, tz, 12, 2.2, 1.8);
+  }
+
   refreshModels();
-  return { update, switchTo, refreshModels, throwGrenade, explodeAt, currentSpreadOf: () => {
+  return { update, switchTo, refreshModels, throwGrenade, explodeAt, poseShotFx, currentSpreadOf: () => {
     const w = WEAPONS[load.current];
     return w ? currentSpread(w) : 0;
   } };

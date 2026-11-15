@@ -98,6 +98,8 @@ if (shot) {
     p.loadout.current = 'kestrel'; weapons.refreshModels();
     S.money = 2350; S.roundT = 63;
     step(STEP);
+    // freeze a shot mid-flight at the near Warden: flash, tracer, sparks
+    weapons.poseShotFx(w1.pos.x, 1.25, w1.pos.z);
   } else if (shot === 'buy') {
     document.getElementById('play').click(); // the match opens in the buy phase
     S.money = 5000;
