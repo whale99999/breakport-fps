@@ -45,21 +45,39 @@ export function createWeapons(camera, scene, input, player) {
   const holder = new THREE.Group();
   camera.add(holder);
   // a soft fill light riding the camera so the held weapon reads at any angle
-  const fill = new THREE.PointLight(0xffe0b8, 1.7, 0, 2);
+  const fill = new THREE.PointLight(0xffe0b8, 0.85, 0, 2);
   fill.position.set(0.05, 0.12, 0.15);
   camera.add(fill);
   const models = {};
   function vm(key, build) {
     const g = new THREE.Group();
-    g.position.set(0.26, -0.22, -0.45);
+    g.position.set(0.24, -0.205, -0.40);
+    g.rotation.y = -0.10; // three-quarter hold: the top rail and the left side read
     build(g);
     g.visible = false;
     holder.add(g);
     models[key] = g;
   }
   const dark = mat(0x2c2f33, 0.5, 0.5), mid = mat(0x4a4f55, 0.45, 0.55), accent = mat(0xc65a21, 0.5, 0.3);
+  const violet = mat(0x4516b0, 0.45, 0.2); // the Kestrel's signature finish (deep violet; kept saturated by the gentler camera fill light)
   function part(g, w, h, d, m, x, y, z) { const p = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); p.position.set(x, y, z); g.add(p); return p; }
   function tube(g, r, len, m, x, y, z) { const p = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 10), m); p.rotation.x = Math.PI / 2; p.position.set(x, y, z); g.add(p); return p; }
+  // Picatinny rail: a base strip with evenly spaced teeth — the one detail
+  // that makes a slab read as a tactical rifle at screenshot distance.
+  function rail(g, y, z0, z1, m) {
+    part(g, 0.034, 0.016, z0 - z1, m, 0, y, (z0 + z1) / 2);
+    for (let z = z1 + 0.022; z < z0; z += 0.045) part(g, 0.04, 0.02, 0.02, m, 0, y + 0.015, z);
+  }
+  // Ring optic: a torus you can see through, a mount post, a tinted lens.
+  function optic(g, y, z, r) {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(r, Math.max(0.008, r * 0.26), 8, 22), dark);
+    ring.position.set(0, y, z); g.add(ring);
+    const h = Math.max(0.02, y - 0.082);
+    part(g, 0.018, h, 0.026, dark, 0, 0.082 + h / 2, z);
+    const lens = new THREE.Mesh(new THREE.CircleGeometry(r * 0.82, 20),
+      new THREE.MeshStandardMaterial({ color: 0x0d2b2e, emissive: 0x1f8a80, emissiveIntensity: 0.7, roughness: 0.15, metalness: 0.1, transparent: true, opacity: 0.85 }));
+    lens.position.set(0, y, z + 0.004); g.add(lens);
+  }
   // Each view model is assembled from real parts — receiver, barrel, magazine,
   // stock, sights, rail — so the gun in hand reads as a gun, not a slab.
   vm('knife', (g) => {
@@ -70,6 +88,7 @@ export function createWeapons(camera, scene, input, player) {
   vm('sable', (g) => {
     part(g, 0.05, 0.09, 0.26, dark, 0, -0.012, -0.1);                 // frame
     part(g, 0.046, 0.05, 0.27, mid, 0, 0.056, -0.11);                 // slide
+    for (let i = 0; i < 4; i++) part(g, 0.048, 0.052, 0.009, dark, 0, 0.056, -0.005 - i * 0.02); // slide serrations
     const grip = part(g, 0.045, 0.13, 0.07, dark, 0, -0.1, 0.005); grip.rotation.x = 0.22;
     part(g, 0.008, 0.032, 0.008, dark, 0, 0.096, -0.225);             // front post
     part(g, 0.032, 0.026, 0.012, dark, 0, 0.092, 0.005);              // rear sight
@@ -81,20 +100,28 @@ export function createWeapons(camera, scene, input, player) {
     tube(g, 0.016, 0.13, mid, 0, 0.012, -0.57);                       // barrel
     const mag = part(g, 0.04, 0.17, 0.075, mid, 0, -0.135, -0.12); mag.rotation.x = 0.16;
     part(g, 0.045, 0.08, 0.16, dark, 0, 0.008, 0.13);                 // stock
-    part(g, 0.02, 0.02, 0.3, mid, 0, 0.072, -0.15);                   // top rail
+    rail(g, 0.068, 0.05, -0.52, dark);                                // top rail with teeth
+    optic(g, 0.118, -0.18, 0.038);                                    // ring red-dot
     part(g, 0.008, 0.04, 0.008, dark, 0, 0.075, -0.48);               // front post
     part(g, 0.058, 0.03, 0.12, accent, 0, -0.02, -0.22);              // accent stripe
   });
   vm('kestrel', (g) => {
-    part(g, 0.055, 0.11, 0.5, dark, 0, 0, -0.16);                     // receiver
-    part(g, 0.052, 0.085, 0.26, mid, 0, 0, -0.44);                    // handguard
-    tube(g, 0.015, 0.17, dark, 0, 0.006, -0.64);                      // barrel
-    tube(g, 0.024, 0.06, mid, 0, 0.006, -0.72);                       // muzzle brake
-    const mag = part(g, 0.042, 0.15, 0.08, mid, 0, -0.125, -0.16); mag.rotation.x = 0.12;
-    const grip = part(g, 0.04, 0.11, 0.06, dark, 0, -0.1, 0.03); grip.rotation.x = 0.3;
-    part(g, 0.05, 0.09, 0.18, dark, 0, 0, 0.15);                      // stock
-    part(g, 0.05, 0.058, 0.13, accent, 0, 0.086, -0.18);              // carry handle
-    part(g, 0.008, 0.046, 0.008, dark, 0, 0.062, -0.52);              // front post
+    part(g, 0.06, 0.115, 0.52, violet, 0, 0, -0.16);                  // receiver, signature violet
+    part(g, 0.066, 0.10, 0.30, violet, 0, 0.002, -0.47);              // chunky handguard
+    part(g, 0.068, 0.028, 0.26, dark, 0, -0.048, -0.47);              // under-rail shadow line
+    for (const sx of [-1, 1]) for (let i = 0; i < 3; i++)             // handguard vent slots
+      part(g, 0.002, 0.02, 0.05, dark, sx * 0.034, 0.02, -0.36 - i * 0.09);
+    tube(g, 0.016, 0.14, dark, 0, 0.008, -0.66);                      // barrel
+    tube(g, 0.03, 0.15, dark, 0, 0.008, -0.79);                       // suppressor can
+    part(g, 0.02, 0.05, 0.06, dark, -0.031, 0.01, -0.13);             // ejection port, left face
+    part(g, 0.03, 0.02, 0.02, mid, 0.032, 0.03, 0.02);                // charging-handle wing
+    const mag = part(g, 0.044, 0.17, 0.085, dark, 0, -0.135, -0.17); mag.rotation.x = 0.18;
+    const grip = part(g, 0.042, 0.115, 0.06, dark, 0, -0.105, 0.04); grip.rotation.x = 0.32;
+    part(g, 0.052, 0.095, 0.19, dark, 0, -0.002, 0.16);               // stock
+    part(g, 0.054, 0.03, 0.12, violet, 0, 0.055, 0.17);               // cheek riser, violet
+    rail(g, 0.068, 0.08, -0.60, dark);                                // full-length top rail
+    optic(g, 0.125, -0.20, 0.045);                                    // ring red-dot
+    part(g, 0.008, 0.04, 0.008, dark, 0, 0.075, -0.58);               // front post
   });
   vm('heron', (g) => {
     part(g, 0.052, 0.105, 0.6, dark, 0, 0, -0.2);                     // receiver
@@ -103,6 +130,12 @@ export function createWeapons(camera, scene, input, player) {
     tube(g, 0.026, 0.3, dark, 0, 0.108, -0.2);                        // scope tube
     tube(g, 0.037, 0.07, dark, 0, 0.108, -0.335);                     // objective bell
     tube(g, 0.032, 0.05, dark, 0, 0.108, -0.055);                     // eyepiece
+    const eyeLens = new THREE.Mesh(new THREE.CircleGeometry(0.024, 18),
+      new THREE.MeshStandardMaterial({ color: 0x0d2b2e, emissive: 0x1f8a80, emissiveIntensity: 0.8, roughness: 0.15, metalness: 0.1 }));
+    eyeLens.position.set(0, 0.108, -0.029); g.add(eyeLens);           // glass the player looks into
+    const objLens = eyeLens.clone(); objLens.rotation.y = Math.PI;
+    objLens.position.set(0, 0.108, -0.371); g.add(objLens);
+    rail(g, 0.062, 0.05, -0.45, dark);                                // rail under the scope
     part(g, 0.02, 0.05, 0.03, mid, 0, 0.062, -0.28);                  // scope mounts
     part(g, 0.02, 0.05, 0.03, mid, 0, 0.062, -0.12);
     part(g, 0.05, 0.1, 0.3, mid, 0, -0.012, 0.17);                    // stock
@@ -119,13 +152,23 @@ export function createWeapons(camera, scene, input, player) {
   const flash = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.34),
     new THREE.MeshBasicMaterial({ map: muzzleFlashTexture(), color: 0xffe9bb, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
   holder.add(flash);
-  // Muzzle-tip offsets in holder space per weapon (the view-model group sits
-  // at 0.26,-0.22,-0.45; each barrel ends at its own depth), so the flash
-  // blooms on the barrel tip, not at screen centre.
-  const MUZZLE = {
-    sable: [0.26, -0.21, -0.73], vyper: [0.26, -0.208, -1.11],
-    kestrel: [0.26, -0.214, -1.22], heron: [0.26, -0.21, -1.33],
+  // Muzzle tips in each view model's LOCAL space. anchorFlash() converts
+  // through the group's world matrix, so the flash stays glued to the barrel
+  // tip however the group is posed (the three-quarter hold included).
+  const MUZZLE_LOCAL = {
+    sable: [0, 0.01, -0.27], vyper: [0, 0.012, -0.65],
+    kestrel: [0, 0.008, -0.88], heron: [0, 0.01, -0.87],
   };
+  const _mv = new THREE.Vector3();
+  function anchorFlash() {
+    const ml = MUZZLE_LOCAL[load.current], g = models[load.current];
+    if (!ml || !g) return;
+    camera.updateMatrixWorld(true);
+    _mv.set(ml[0], ml[1], ml[2]);
+    g.localToWorld(_mv);
+    holder.worldToLocal(_mv);
+    flash.position.copy(_mv);
+  }
 
   // --- tracers + impacts: small pools, reused, no per-shot allocation -------
   const tracerMat = new THREE.LineBasicMaterial({ color: 0xffd9a0, transparent: true, opacity: 0 });
@@ -324,8 +367,7 @@ export function createWeapons(camera, scene, input, player) {
   function refreshModels() {
     for (const k in models) models[k].visible = k === load.current;
     grenadeModel.visible = load.current === 'grenade';
-    const mz = MUZZLE[load.current];
-    if (mz) flash.position.set(mz[0], mz[1], mz[2]);
+    anchorFlash();
     holder.position.z = player.zoomed ? 0.4 : 0; // hide the view model in scope
   }
 
@@ -424,12 +466,13 @@ export function createWeapons(camera, scene, input, player) {
   // to the target, sparks already bursting off it — set after the last sim
   // step, so nothing decays before the capture renders.
   function poseShotFx(tx, ty, tz) {
+    anchorFlash(); // matrices are fresh after the sim steps: re-glue the flash
     camera.getWorldPosition(_origin);
     camera.getWorldDirection(_dir);
     flash.material.opacity = 1;
     flash.rotation.z = 0.6;
     flashLight.position.set(_origin.x + _dir.x * 0.8, _origin.y - 0.04, _origin.z + _dir.z * 0.8);
-    flashLight.intensity = 34;
+    flashLight.intensity = 5; // the posed frame holds this light forever: at full strength its warm blast washes the held weapon pink, while the additive flash sprite still blooms on its own
     _target.set(tx, ty, tz);
     _origin.y -= 0.12; _origin.addScaledVector(_dir, 0.4);
     tracer(_origin, _target);
