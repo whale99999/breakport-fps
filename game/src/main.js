@@ -91,7 +91,7 @@ if (shot) {
     // two Wardens stand in the sightline toward the crane yard: one close
     // enough to read as an enemy in the frame, one holding the site itself
     const w1 = S.bots[5], w2 = S.bots[4];
-    w1.pos.x = 14; w1.pos.z = -9; w1.yaw = 2.2; w1.mode = 'hold';
+    w1.pos.x = 12; w1.pos.z = -8; w1.yaw = 2.2; w1.mode = 'hold';
     w2.pos.x = 30; w2.pos.z = -20; w2.yaw = 2.4; w2.mode = 'hold';
     p.loadout.owned.kestrel = true; p.loadout.bySlot[1] = 'kestrel';
     p.loadout.state.kestrel = { mag: 24, reserve: 90 };

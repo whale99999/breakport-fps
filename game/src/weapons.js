@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { S } from './state.js';
 import { mat } from './palette.js';
 import { sfxShot, sfxDry, sfxReload, sfxSwing, sfxBounce, sfxExplosion } from './audio.js';
+import { muzzleFlashTexture } from './textures.js';
 
 export const ZONE_MULT = { head: 4, torso: 1, legs: 0.75 };
 
@@ -115,9 +116,16 @@ export function createWeapons(camera, scene, input, player) {
   const gball = new THREE.Mesh(new THREE.SphereGeometry(0.055, 10, 8), mat(0x3d4756, 0.5, 0.4));
   grenadeModel.add(gball); grenadeModel.position.set(0.24, -0.2, -0.4); grenadeModel.visible = false;
   holder.add(grenadeModel);
-  const flash = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.3),
-    new THREE.MeshBasicMaterial({ color: 0xffcf7a, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
-  flash.position.set(0, 0.02, -0.72); holder.add(flash);
+  const flash = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.34),
+    new THREE.MeshBasicMaterial({ map: muzzleFlashTexture(), color: 0xffe9bb, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
+  holder.add(flash);
+  // Muzzle-tip offsets in holder space per weapon (the view-model group sits
+  // at 0.26,-0.22,-0.45; each barrel ends at its own depth), so the flash
+  // blooms on the barrel tip, not at screen centre.
+  const MUZZLE = {
+    sable: [0.26, -0.21, -0.73], vyper: [0.26, -0.208, -1.11],
+    kestrel: [0.26, -0.214, -1.22], heron: [0.26, -0.21, -1.33],
+  };
 
   // --- tracers + impacts: small pools, reused, no per-shot allocation -------
   const tracerMat = new THREE.LineBasicMaterial({ color: 0xffd9a0, transparent: true, opacity: 0 });
@@ -316,6 +324,8 @@ export function createWeapons(camera, scene, input, player) {
   function refreshModels() {
     for (const k in models) models[k].visible = k === load.current;
     grenadeModel.visible = load.current === 'grenade';
+    const mz = MUZZLE[load.current];
+    if (mz) flash.position.set(mz[0], mz[1], mz[2]);
     holder.position.z = player.zoomed ? 0.4 : 0; // hide the view model in scope
   }
 

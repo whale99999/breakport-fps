@@ -273,3 +273,30 @@ export function sunGlowTexture() {
   glowTex = toTex(c);
   return glowTex;
 }
+
+let flashTex = null;
+// Muzzle flash sprite: a hot core with six tapered spikes, alpha falling to
+// zero at the rim so the additive quad reads as a star burst, not a square.
+export function muzzleFlashTexture() {
+  if (flashTex) return flashTex;
+  const [c, g] = makeCanvas(128, 128);
+  g.translate(64, 64);
+  for (let i = 0; i < 6; i++) {
+    g.save();
+    g.rotate((i / 6) * Math.PI * 2 + 0.4);
+    const gr = g.createLinearGradient(0, 0, 62, 0);
+    gr.addColorStop(0, 'rgba(255,220,150,0.8)');
+    gr.addColorStop(1, 'rgba(255,160,60,0)');
+    g.fillStyle = gr;
+    g.beginPath(); g.moveTo(0, -5); g.lineTo(62, 0); g.lineTo(0, 5); g.closePath(); g.fill();
+    g.restore();
+  }
+  const core = g.createRadialGradient(0, 0, 1, 0, 0, 30);
+  core.addColorStop(0, 'rgba(255,246,214,1)');
+  core.addColorStop(0.5, 'rgba(255,205,120,0.55)');
+  core.addColorStop(1, 'rgba(255,170,70,0)');
+  g.fillStyle = core;
+  g.beginPath(); g.arc(0, 0, 30, 0, Math.PI * 2); g.fill();
+  flashTex = toTex(c);
+  return flashTex;
+}
